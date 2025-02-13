@@ -44,6 +44,8 @@ EXPORT_API int rviz_cloud_annotation_load(const int data_i, const char * const f
 EXPORT_API int rviz_cloud_annotation_save(const int data_i, const char * const filename);
 	//sets control points, given an index and a label
 EXPORT_API int rviz_cloud_annotation_set_controlpoint(const int data_i, int* results, const int point_id, const int label, const int weight);
+    //sets an array of count control points, given the indices and a label
+EXPORT_API int rviz_cloud_annotation_set_controlpoint_vector(const int data_i, int* results, const int* const point_ids, const int count, const int label, const int weight);
 	//given an index, gets the label of the point, 0 if none
 EXPORT_API int rviz_cloud_annotation_get_labelforpoint(const int data_i, const int point_id);
 	//gets list of labels of control points, sets -1 for points that are not control points
@@ -75,6 +77,8 @@ EXPORT_API bool rviz_cloud_annotation_get_cloud_colors(const int data_i, float* 
     // finds points close to line within radius, returns number of points found
 EXPORT_API int rviz_cloud_annotation_find_points_close_to_line(const int data_i, const float * line_origin, const float * line_direction, const float radius, const int max_points,
 	                                                            int * point_indices, float * point_distances_along_ray, float * point_distances_from_ray);
+    // finds points in bounding box [box_min, box_max] with pose [box_pose]
+EXPORT_API int rviz_cloud_annotation_find_points_in_box(const int data_i, const float* box_min, const float* box_max, const float* box_pose, const int max_points, int* point_indices);
 #ifdef USE_UNDO
 EXPORT_API int rviz_cloud_annotation_undo(const int data_i, int* results);
 EXPORT_API int rviz_cloud_annotation_redo(const int data_i, int* results);

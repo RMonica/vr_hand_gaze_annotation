@@ -1,11 +1,7 @@
 using PointCloudExporter;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.UI;
 using UnityEngine;
-using UnityEngine.UIElements;
-using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
-using static UnityEditor.Searcher.SearcherWindow.Alignment;
 
 public class PointCloudEyeInteractable : EyeInteractable
 {

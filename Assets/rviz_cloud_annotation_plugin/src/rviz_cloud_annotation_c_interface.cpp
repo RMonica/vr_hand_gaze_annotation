@@ -145,6 +145,36 @@ EXPORT_API int rviz_cloud_annotation_find_points_close_to_line(const int data_i,
     return std::min<int>(result.size(), max_points);
 }
 
+EXPORT_API int rviz_cloud_annotation_find_points_in_box(const int data_i, const float* box_min_a, const float* box_max_a, const float* box_pose_a, const int max_points, int* point_indices)
+{
+    const Eigen::Vector3f box_min(box_min_a[0], box_min_a[1], box_min_a[2]);
+    const Eigen::Vector3f box_max(box_max_a[0], box_max_a[1], box_max_a[2]);
+    Eigen::Matrix4f box_pose;
+    for (int y = 0; y < 4; y++)
+        for (int x = 0; x < 4; x++)
+            box_pose(y, x) = box_pose_a[x + y * 4];
+    const Eigen::Matrix4f box_pose_inv = box_pose.inverse();
+
+    std::vector<int> result;
+
+    for (int i = 0; i < G->point_cloud->size(); i++)
+    {
+        pcl::PointXYZRGBNormal pt = (*(G->point_cloud))[i];
+        Eigen::Vector4f ept(pt.x, pt.y, pt.z, 1.0f);
+        Eigen::Vector4f tpt = box_pose_inv * ept;
+        Eigen::Vector3f tpt3 = tpt.head<3>() / tpt.w();
+        if ((tpt3.array() < box_max.array()).all() && (tpt3.array() >= box_min.array()).all())
+            result.push_back(i);
+    }
+
+    for (int i = 0; i < result.size() && i < max_points; i++)
+    {
+        point_indices[i] = result[i];
+    }
+
+    return std::min<int>(result.size(), max_points);
+}
+
 EXPORT_API int rviz_cloud_annotation_savecloud(const int data_i, const char* const filename, const float* const color_list)
 {
     /*
@@ -283,7 +313,24 @@ EXPORT_API int rviz_cloud_annotation_set_controlpoint(const int data_i, int *res
     RVizCloudAnnotationPoints::Uint64Vector temp = G->rviz_cloud_annotation_points->SetControlPoint(point_id, weight, label);
 #endif
 
-    //CHECK FOR ERROR?
+    for (int i = 0; i < temp.size(); ++i)
+    {
+        results[i] = temp[i];
+    }
+    return int(RvizCloudAnnotationError::NONE);
+}
+
+EXPORT_API int rviz_cloud_annotation_set_controlpoint_vector(const int data_i, int * results, const int * const point_ids, const int count, const int label, const int weight)
+{ 
+    RVizCloudAnnotationUndo::Uint64Vector point_ids_v(count);
+    for (int i = 0; i < count; i++)
+        point_ids_v[i] = point_ids[i];
+
+#ifdef USE_UNDO
+    RVizCloudAnnotationUndo::Uint64Vector temp = G->rviz_cloud_annotation_undo->SetControlPointVector(point_ids_v, weight, label);
+#else
+    RVizCloudAnnotationPoints::Uint64Vector temp = G->rviz_cloud_annotation_points->SetControlPointVector(data_i, weight, label);
+#endif
 
     for (int i = 0; i < temp.size(); ++i)
     {

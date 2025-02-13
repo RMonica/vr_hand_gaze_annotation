@@ -1801,11 +1801,11 @@ MonoBehaviour:
   surfelCloudGameObject: {fileID: 0}
   canvasMenuController: {fileID: 1802149870}
   modeController: {fileID: 2045030423}
-  OnHoverActiveMaterial: {fileID: 2100000, guid: 5e88a93148f69984e968ecc92408960f,
+  OnHoverActiveMaterial: {fileID: 2100000, guid: 30eb4ca03dc5eb04b91ce85b7e47f19a,
     type: 2}
-  OnSelectedActiveMaterial: {fileID: 2100000, guid: 8521b32b7fcd7ae41acc48012ada9ec0,
+  OnSelectedActiveMaterial: {fileID: 2100000, guid: 2a0e510c206ca1242be7a203654e8db2,
     type: 2}
-  OnPassiveStateMaterial: {fileID: 2100000, guid: 2ab8149ec4775284bada96c1b85b4a09,
+  OnPassiveStateMaterial: {fileID: 2100000, guid: 4946a0f6da08c8e4fb05517dd76d3e71,
     type: 2}
   selection_cone_angle_eye_tracking: 2
   selection_cone_radius_eye_tracking: 0.015
@@ -7283,7 +7283,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   selectedScene: 1
-  activeMode: 1
+  activeMode: 2
   userCode: username
   main_camera: {fileID: 806953348}
 --- !u!1 &2077497436

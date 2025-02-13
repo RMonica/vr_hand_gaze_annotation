@@ -1,16 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
 using PointCloudExporter;
-using static UnityEditor.FilePathAttribute;
-using Unity.VisualScripting;
-using System.Drawing;
-using static ONSPPropagationMaterial;
-using UnityEngine.UIElements;
-using System;
-using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
-using UnityEngine.Assertions.Must;
 
 public class SetBoxes : MonoBehaviour
 {
@@ -194,34 +184,34 @@ public class SetBoxes : MonoBehaviour
              */
             else if ((OVRInput.Get(OVRInput.Axis1D.SecondaryIndexTrigger) < threshold_buttons) && r_hand_index_trigger_pushed && box_present)
             {
-
+                Debug.Log("Searching points in box.");
                 BoxCollider coll = newBoundingBox.GetComponent<BoxCollider>();
-                List<int> list = new List<int>();
-                Debug.Log(point_cloud_generator.point_cloud_info.vertices.Length.ToString());
 
                 float halfX = (coll.size.x * 0.5f);
                 float halfY = (coll.size.y * 0.5f);
                 float halfZ = (coll.size.z * 0.5f);
 
-                for (int index = 0; index <= point_cloud_generator.point_cloud_info.vertices.Length - 1; index++)
+                Matrix4x4 box_translation = Matrix4x4.identity;
+                box_translation[0, 3] = coll.center[0];
+                box_translation[1, 3] = coll.center[1];
+                box_translation[2, 3] = coll.center[2];
+
+                Matrix4x4 box_pose = coll.transform.localToWorldMatrix * box_translation;
+                Vector3 box_min = new Vector3(-halfX, -halfY, -halfZ);
+                Vector3 box_max = new Vector3(halfX, halfY, halfZ);
+
+                List<int> list = point_cloud_generator.find_points_in_box(box_min, box_max, box_pose);
+                Debug.Log("Found " + list.Count.ToString() + " points in box. Coloring...");
+
+                if (list.Count > 0)
                 {
-                    Vector3 sphere_position = point_cloud_generator.point_cloud_info.vertices[index] * point_cloud_generator.scale;
-
-                    sphere_position = coll.transform.InverseTransformPoint(PointCloud.transform.TransformPoint(sphere_position)) - coll.center;
-
-                    if (sphere_position.x < halfX && sphere_position.x > -halfX &&
-                       sphere_position.y < halfY && sphere_position.y > -halfY &&
-                       sphere_position.z < halfZ && sphere_position.z > -halfZ) list.Add(index);
-
-
+                    point_cloud_generator.SetControlPointWithLabel(list, 0, current_label);
                 }
-                
-                point_cloud_generator.SetControlPointWithLabel(list, 0, current_label);
+
                 box_present = false;
                 r_hand_index_trigger_pushed = false;
                 Debug.Log("Coloring terminated.");
                 newBoundingBox.GetComponent<MeshRenderer>().enabled = false;
-
             }
 
             // controlli che permettono di scorrere tra i colori presenti sul canvas

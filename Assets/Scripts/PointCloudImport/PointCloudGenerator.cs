@@ -4,15 +4,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
-using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System.Text;
-using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
-using static UnityEditor.Searcher.SearcherWindow.Alignment;
-using Random = UnityEngine.Random;
 
 namespace PointCloudExporter
 {
@@ -130,6 +125,9 @@ namespace PointCloudExporter
         public static extern int rviz_cloud_annotation_set_controlpoint(int data_i, [Out] int[] results, int point_id, int label, int weight);
 
         [DllImport(rviz_dll, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int rviz_cloud_annotation_set_controlpoint_vector(int data_i, [Out] int[] results, int[] point_ids, int count, int label, int weight);
+
+        [DllImport(rviz_dll, CallingConvention = CallingConvention.Cdecl)]
         public static extern int rviz_cloud_annotation_get_labelforpoint(int data_i, int point_id);
 
         [DllImport(rviz_dll, CallingConvention = CallingConvention.Cdecl)]
@@ -176,6 +174,45 @@ namespace PointCloudExporter
             line_direction_arr[2] = -line_direction.z; // moved from left-handed reference to right-handed reference
             return rviz_cloud_annotation_find_points_close_to_line(data_slot_i, line_origin_arr, line_direction_arr, radius, max_points,
                                                                     point_indices, point_distances_along_ray, point_distances_from_ray);
+        }
+
+        [DllImport(rviz_dll, CallingConvention = CallingConvention.Cdecl)]
+        private static extern int rviz_cloud_annotation_find_points_in_box(int data_i, float[] box_min_a, float[] box_max_a, float[] box_pose_a, int max_points, [Out] int[] point_indices);
+        public List<int> find_points_in_box(Vector3 box_min, Vector3 box_max, Matrix4x4 box_pose)
+        {
+            Matrix4x4 scale_matrix = Matrix4x4.identity;
+            scale_matrix[0, 0] = 1.0f / scale;
+            scale_matrix[1, 1] = 1.0f / scale;
+            scale_matrix[2, 2] = -1.0f / scale; // left-handed reference frame to right-handed
+
+            Matrix4x4 cloud_pose = pointCloudGameObject.transform.worldToLocalMatrix;
+            Matrix4x4 local_box_pose = scale_matrix * cloud_pose * box_pose;
+
+            float[] box_pose_a = new float[16];
+            for (int y = 0; y < 4; y++)
+                for (int x = 0; x < 4; x++)
+                    box_pose_a[x + y * 4] = local_box_pose[y, x];
+
+            float[] box_min_a = new float[3];
+            box_min_a[0] = box_min[0];
+            box_min_a[1] = box_min[1];
+            box_min_a[2] = box_min[2];
+
+            float[] box_max_a = new float[3];
+            box_max_a[0] = box_max[0];
+            box_max_a[1] = box_max[1];
+            box_max_a[2] = box_max[2];
+
+            int max_points = rviz_cloud_annotation_get_cloudsize(data_slot_i);
+            int[] point_indices = new int[max_points];
+
+            int count = rviz_cloud_annotation_find_points_in_box(data_slot_i, box_min_a, box_max_a, box_pose_a, max_points, point_indices);
+
+            List<int> result = point_indices.ToList<int>();
+            if (count < max_points)
+                result.RemoveRange(count, max_points - count);
+
+            return result;
         }
 
         [DllImport(rviz_dll, CallingConvention = CallingConvention.Cdecl)]
@@ -968,20 +1005,24 @@ namespace PointCloudExporter
         {
             int cloud_size = PointCloudGenerator.rviz_cloud_annotation_get_cloudsize(data_slot_i);
             int[] changed_control_points = new int[cloud_size];
-            foreach (var point in point_id)
+            int count = point_id.Count;
+            int[] point_ids = new int[count];
+            for (int i = 0; i < count; i++)
             {
-                if (selected_label > 0)
-                {
-                    int cpp_interface = PointCloudGenerator.rviz_cloud_annotation_set_controlpoint(data_slot_i, changed_control_points, point, selected_label, label_weight);
-                    //if (label_weight > 0)
-                    //    Debug.Log("Set Control Point | Result: " + cpp_interface.ToString() + " | Setted value " + selected_label.ToString() + " at index " + point_id.ToString());
-                }
-                else if (selected_label == 0)
-                {
-                    int cpp_interface = PointCloudGenerator.rviz_cloud_annotation_set_controlpoint(data_slot_i, changed_control_points, point, selected_label, 0);
-                    //if (label_weight > 0)
-                    //    Debug.Log("Set Control Point | Result: " + cpp_interface.ToString() + " | Setted value " + selected_label.ToString() + " at index " + point_id.ToString());
-                }
+                point_ids[i] = point_id[i];
+            }
+
+            if (selected_label > 0)
+            {
+                int cpp_interface = PointCloudGenerator.rviz_cloud_annotation_set_controlpoint_vector(data_slot_i, changed_control_points, point_ids, count, selected_label, label_weight);
+                //if (label_weight > 0)
+                //    Debug.Log("Set Control Point | Result: " + cpp_interface.ToString() + " | Setted value " + selected_label.ToString() + " at index " + point_id.ToString());
+            }
+            else if (selected_label == 0)
+            {
+                int cpp_interface = PointCloudGenerator.rviz_cloud_annotation_set_controlpoint_vector(data_slot_i, changed_control_points, point_ids, count, selected_label, 0);
+                //if (label_weight > 0)
+                //    Debug.Log("Set Control Point | Result: " + cpp_interface.ToString() + " | Setted value " + selected_label.ToString() + " at index " + point_id.ToString());
             }
 
             UpdateCloudView();
